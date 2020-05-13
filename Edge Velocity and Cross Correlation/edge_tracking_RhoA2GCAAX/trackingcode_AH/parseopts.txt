@@ -1,0 +1,113 @@
+0001 function P = slparseprops(P0, varargin)
+0002 %SLPARSEPROPS Parses input parameters
+0003 %
+0004 % $ Syntax $
+0005 %   - P = slparseprops(P0, property_struct)
+0006 %   - P = slparseprops(P0, property_name1, property_value1, ...)
+0007 %
+0008 % $ Syntax $
+0009 %   - P = slparseprops(P0, property_struct) parses the properties from a
+0010 %     property structure. The structure has multiple entries, with the
+0011 %     property names as field names, and the property values are corresponding
+0012 %     values.
+0013 %
+0014 %   - P = slparseprops(P0, property_name1, property_value1, ...) parses
+0015 %     the properties from property list. The list are a argument list with
+0016 %     the form of multiple pairs of property names and corresponding values.
+0017 %
+0018 % $ Remarks $
+0019 %   - The P0 specifies the default values of properties. All properties
+0020 %     that can be set should appear in P0. If some properties specified in
+0021 %     following arguments are not included in P0, an error will be raised.
+0022 %
+0023 %   - Passing arguments in the way of property specification is a convenient
+0024 %     method when multiple values need to be input. The user can only change
+0025 %     some properties, while leaving others being in their default values.
+0026 %     With this function, the function composer can design the function
+0027 %     interfaces in the following form: func(main_parameters, varargin), and
+0028 %     use parseprops(P0, varargin{:}) to parse the properties specified in the
+0029 %     extra arguments.
+0030 %
+0031 % $ History $
+0032 %   - Created by Dahua Lin on Dec 19th, 2005
+0033 %   - Modified by Dahua Lin, on Aug 27, 2006
+0034 %       - enhance the compatibility with older version of Matlab
+0035 %
+0036 
+0037 if nargin == 1
+0038     P = P0;
+0039 elseif nargin == 2
+0040     if isempty(varargin{1})
+0041         P = P0;
+0042     elseif isstruct(varargin{1})
+0043         P = parse_props_from_struct(P0, varargin{1});
+0044     else
+0045         error('sltoolbox:invalidarg', ...
+0046             'Invalid input arguments for properties specification');
+0047     end
+0048 else
+0049     n = length(varargin);
+0050     nitems = n / 2;
+0051     if nitems ~= floor(nitems)  % not an integer
+0052         error('sltoolbox:invalidarg', ...
+0053             'Invalid input arguments for properties specification');
+0054     end
+0055     args = reshape(varargin, [2, nitems]);
+0056     P = parse_props_from_arglist(P0, args);
+0057 end
+0058 
+0059 
+0060 %%------------ parse functions  -----------------
+0061 
+0062 function P = parse_props_from_struct(P0, S)
+0063 
+0064 s_names = fieldnames(S);
+0065 check_names(P0, s_names);
+0066 
+0067 n = length(s_names);
+0068 P = P0;
+0069 for i = 1 : n
+0070     curname = s_names{i};
+0071     P.(curname) = S.(curname);
+0072 end
+0073 
+0074 
+0075 function P = parse_props_from_arglist(P0, args)
+0076 
+0077 a_names = args(1, :);
+0078 check_names(P0, a_names);
+0079 
+0080 n = length(a_names);
+0081 P = P0;
+0082 for i = 1 : n
+0083     curname = a_names{i};
+0084     P.(curname) = args{2, i};
+0085 end
+0086 
+0087 
+0088 
+0089 function check_names(P0, names)
+0090 
+0091 n = length(names);
+0092 for i = 1 : n
+0093     if ~ischar(names{i})
+0094         error('Encounter a non-char property name');
+0095     end
+0096 end
+0097 
+0098 for i = 1 : n
+0099     if ~isfield(P0, names{i})
+0100         error('The property name %s is invalid', names{i});
+0101     end
+0102 end
+0103 
+0104 
+0105 
+0106 
+0107 
+0108 
+0109     
+0110     
+0111     
+0112 
+0113

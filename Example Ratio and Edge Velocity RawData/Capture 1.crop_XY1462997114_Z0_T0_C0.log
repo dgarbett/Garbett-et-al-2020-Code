@@ -1,0 +1,11 @@
+Export Date-Time: 10/2/2018 11:2:18
+Capture Date-Time: 5/11/2016 13:30:10
+Z Planes: 1
+Time Points: 300
+Channels: 2
+Microns Per Pixel: 0.325
+Z Step Size Microns: 0
+Average Timelapse Interval: 5000.72 ms (0.2 Hz) (+/- 0.4 ms)
+IFD	X Position (um)	Y Position (um)	Z Position (um)	Elapsed Time (ms)	Channel Name	TIFF File Name
+0	20542.4	9156	6201	0	515_50um	Capture 1.crop_XY1462997114_Z0_T000_C0.tif
+0	20542.4	9156	6201	0	561_50um	Capture 1.crop_XY1462997114_Z0_T000_C1.tif

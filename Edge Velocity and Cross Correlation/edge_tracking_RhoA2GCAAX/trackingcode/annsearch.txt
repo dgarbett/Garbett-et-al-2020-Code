@@ -1,0 +1,195 @@
+0001 function [nnidx, dists] = annsearch(X0, X, k, varargin)
+0002 %ANNSEARCH Approximate Nearest Neighbor Search
+0003 %
+0004 % $ Syntax $
+0005 %   - nnidx = annsearch(X0, [], k)
+0006 %   - nnidx = annsearch(X0, X, k)
+0007 %   - nnidx = annsearch(X0, [], k, ...)
+0008 %   - nnidx = annsearch(X0, X, k, ...)
+0009 %   - [nnidx, dists] = annsearch(...)
+0010 %
+0011 % $ Arguments $
+0012 %   - X0:       the matrix of points for constructing the KD tree
+0013 %   - X:        the matrix of points for query
+0014 %   - k:        the number of neighbors for each query point
+0015 %   - nnidx:    the indices of neighboring points
+0016 %   - dists:    the distances between the query points to their neighbors
+0017 %
+0018 % $ Description $
+0019 %   - nnidx = annsearch(X0, [], k) approximately searches the neighboring
+0020 %     points of each point of X0 within X0. In the findings, the query
+0021 %     point itself is excluded from its neighbor set. k non-trivial
+0022 %     neighbors for each query point is searched.
+0023 %
+0024 %   - nnidx = annsearch(X0, X, k) approximately searches the neighbors of
+0025 %     points in X within the point set specified by X0. Note that even
+0026 %     though there are points in X0 which are exactly some point in X, they
+0027 %     will not be excluded from the results.
+0028 %
+0029 %   - nnidx = annsearch(X0, [], k, ...)
+0030 %   - nnidx = annsearch(X0, X, k, ...) conducts the search with
+0031 %     user-customized options. The options that can be set are given
+0032 %     as follows:
+0033 %     \*
+0034 %     \t  Table 1. Options for ANN search
+0035 %     \h     name       &      description      \\
+0036 %           'errbound'  &  The allowable upper bound on error (default = 0) \\
+0037 %           'split'     &  The rule of splitting (default = 'suggest') \\
+0038 %           'search'    &  The search method (default = 'normal') \\
+0039 %     \*
+0040 %    There are following splitting rule in constructing the KD tree:
+0041 %     \*
+0042 %     \t  Table 2. The Splitting rules for KD tree construction
+0043 %     \h     name        &   description   \\
+0044 %            'std'       &  the standard optimized kd-splitting rule \\
+0045 %            'midpt'     &  the midpoint splitting rule \\
+0046 %            'fair'      &  the fair splitting rule \\
+0047 %            'sl_midpt'  &  the sliding midpoint splitting rule \\
+0048 %            'sl_fair'   &  the sliding fair splitting rule \\
+0049 %            'suggest'   &  the author's suggestion for best (default) \\
+0050 %     \*
+0051 %   There are following search methods:
+0052 %     \*
+0053 %     \t  Table 3. The search methods
+0054 %     \h     name       &     description  \\
+0055 %            'normal'   &    the normal search method (default) \\
+0056 %            'priority' &    the priority search method
+0057 %     \*
+0058 %
+0059 %   - [nnidx, dists] = annsearch(...) also returns the distances between
+0060 %     the query points and their neighbors.
+0061 %
+0062 % $ Remarks $
+0063 %   - In X0 or X, each column represents a sample point.
+0064 %   - If there are n points in the query set, then both nnidx and dists
+0065 %     would be k x n matrix, with each column recording the neighbor
+0066 %     information about the corresponding point.
+0067 %
+0068 % $ History $
+0069 %   - Created by Dahua Lin on Apr 21, 2006
+0070 %
+0071 
+0072 %% parse and verify arguments
+0073 
+0074 % for argument number
+0075 if nargin < 3
+0076     error('annerror:invalidarg', ...
+0077         'The number of input arguments should not be less than 3 for annsearch');
+0078 end
+0079 if nargout == 0
+0080     return;
+0081 elseif nargout > 2
+0082     error('annerror:invalidarg', ...
+0083         'The number of output arguments should not be larger than 2 for annsearch');
+0084 end
+0085 
+0086 % for base-target relation
+0087 if ~isempty(X)
+0088     exclude_self = false;
+0089 else
+0090     X = X0;
+0091     k = k + 1;
+0092     exclude_self = true;
+0093 end
+0094 
+0095 % for sizes
+0096 [d, n0] = size(X0);
+0097 if size(X, 1) ~= d
+0098     error('annerror:invalidarg', ...
+0099         'The dimension of training and query points should be consistent');
+0100 end
+0101 if k >= n0
+0102     error('annerror:invalidarg', ...
+0103         'The value k (neighborhood size) should be less than n0, the size of the whole set');
+0104 end
+0105 
+0106 % for options
+0107 opts.errbound = 0;
+0108 opts.split = 'suggest';
+0109 opts.search = 'normal';
+0110 opts = slparseprops(opts, varargin{:});
+0111 
+0112 
+0113 
+0114 %% invoke the wrapped core function
+0115 
+0116 if nargout == 1
+0117 
+0118     nnidx = annsearch_wrapper( ...
+0119         X0, ...
+0120         X, ...
+0121         k, ...
+0122         opts.errbound, ...
+0123         get_splitrule_id(opts.split), ...
+0124         get_searchmethod_id(opts.search));
+0125 
+0126 else
+0127     
+0128     [nnidx, dists] = annsearch_wrapper( ...
+0129         X0, ...
+0130         X, ...
+0131         k, ...
+0132         opts.errbound, ...
+0133         get_splitrule_id(opts.split), ...
+0134         get_searchmethod_id(opts.search));
+0135 
+0136 end
+0137 
+0138 %% post-processing
+0139 
+0140 if exclude_self
+0141     nnidx = nnidx(2:end, :);
+0142     
+0143     if nargout >= 2
+0144         dists = dists(2:end, :);
+0145     end
+0146 end
+0147 
+0148 nnidx = nnidx + 1;  % from zero-based to one-based
+0149 
+0150 if nargout >= 2     % from square distance to euclidean distance
+0151     dists = sqrt(dists);
+0152 end
+0153 
+0154 
+0155 %% Auxiliary functions
+0156 
+0157 function id = get_splitrule_id(s)
+0158 
+0159 switch s
+0160     case 'suggest'
+0161         id = 5;
+0162     case 'std'
+0163         id = 0;
+0164     case 'midpt'
+0165         id = 1;
+0166     case 'fair'
+0167         id = 2;
+0168     case 'sl_midpt'
+0169         id = 3;
+0170     case 'sl_fair'
+0171         id = 4;
+0172     otherwise
+0173         error('annerror:invalidarg', ...
+0174             'Invalid split rule %s for annsearch', s);
+0175 end
+0176 
+0177 
+0178 function id = get_searchmethod_id(s)
+0179 
+0180 switch s
+0181     case 'normal'
+0182         id = 0;
+0183     case 'priority'
+0184         id = 1;
+0185     otherwise
+0186         error('annerror:invalidarg', ...
+0187             'Invalid search method %s for annsearch', s);
+0188 end
+0189 
+0190 
+0191 
+0192 
+0193 
+0194 
+0195
