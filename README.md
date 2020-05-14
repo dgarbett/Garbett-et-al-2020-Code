@@ -7,12 +7,12 @@ All code is run via Matlab and requires working knowledge of its use. The exampl
 
 Scratch Assay Tracking
 Figures: S4E, S4G, S5B
-This code uses cell trace data generated using tracking code described previously1,2 and is also available at https://github.com/scappell/Cell_tracking
+This code uses cell trace data generated using tracking code described previously(1,2) and is also available at https://github.com/scappell/Cell_tracking
 An example set of trace data is provided (tracedata_2_2_1.mat) and can be analyzed using the provided script (Scratch Assay Tracking.m). It tracks average cell velocities based on a nuclear marker and can be configured to only analyze the outer leader cells near a scratch or all cells further back from the scratch.
 
 Ratiometric Analysis
 Figures: 1H, 2F, 3A, 3F, 3G, 4A
-This code generates a parula colormap of two channels as a ratio and is similar to that previously described1. An alternate method of masking is provided if imaging variables change. Sample data is provided in the folder ‘Example Ratio and Edge Velocity RawData’.
+This code generates a parula colormap of two channels as a ratio and is similar to that previously described(1). An alternate method of masking is provided if imaging variables change. Sample data is provided in the folder ‘Example Ratio and Edge Velocity RawData’.
 
 Edge Velocity and Cross Correlation
 Figures: 3B-E
@@ -24,7 +24,7 @@ This code is used to measure cell area changes once cells make contact with fibr
 
 ICQ Colocalization Analysis
 Figure: 6D
-This code is used to measure the colocalization in two-color STED images and its methodology has been previously described4. ‘coloc.m’ is the master program that loads data and calls the other functions required. Sample images are provided in the directory for analysis. 
+This code is used to measure the colocalization in two-color STED images and its methodology has been previously described(4). ‘coloc.m’ is the master program that loads data and calls the other functions required. Sample images are provided in the directory for analysis. 
 
 References
 1.	Hayer, A. et al. Engulfed cadherin fingers are polarized junctional structures between collectively migrating endothelial cells. Nat. Cell Biol. 18, 1311–1323 (2016).
