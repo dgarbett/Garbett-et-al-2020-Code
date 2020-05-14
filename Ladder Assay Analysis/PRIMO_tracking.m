@@ -27,15 +27,15 @@ visualOutput = 1; %output some intermediate movies?
 RGBwrite = 1; %needed for tracking code, keep at 1
 
 runTracking = 1; %run cell tracking
-segmentationCh = 0; %what are the channels used for segmentation
-trackCh = 1; % what channel has the track information
+segmentationCh = 0; %what are the channels used for segmentation; as in C0 or C1 etc
+trackCh = 1; % what channel has the track information; as in C0 or C1 etc
 timeStep = .5; %minutes between time steps;
 numLanes = 1;
 
 
 
 
-
+%make the appropriate directies
 RGBdir = ([root,filesep,output,filesep,'RGB',filesep]);
 if ~exist(RGBdir,'dir')
     mkdir(RGBdir);
@@ -99,10 +99,12 @@ for I = 1:numFiles
     IMChStackI = IMChStack{1,1}(I);
     IMChName{I} = IMChStackI.name;
     IMInfo{I} = imfinfo(IMChStackI.name);
+    %what is the prefix for the filename from before channel info, assumes a multi-tiff stack with C0-CN
     filename = regexprep(IMChName{I},['_C',num2str(segmentationCh(1)),'.tif'],'');
     stripefile = regexprep(IMChName{I},['_C', num2str(segmentationCh(1)),'.tif'],['_C',num2str(trackCh(1)),'.tif']);
     
     stripeInfo = imfinfo(stripefile);
+    %what frames to analyze, change if there are known problems with acquisition
     startFrame = 1;%assume start frame is 1 unless other specified
     endFrame = numel(IMInfo{1,I}); % image until end of stack
     
@@ -114,8 +116,8 @@ for I = 1:numFiles
     jitterwindow=3*nucr;
     blobthreshold = -0.02;  %default 10xbin1=-0.02 20xbin2=-0.03;
     memblocksize = 500;
-    maxmemnum = 100;
-    maxjumpmem = nucr;
+    maxmemnum = 100; % how many cells can we add max
+    maxjumpmem = nucr; %how far can a cell move between frames to be tracked together
 
     
     
@@ -125,8 +127,7 @@ for I = 1:numFiles
         memtracedata = NaN(maxmemnum,endFrame,5);
         memtracking = NaN(maxmemnum,5);
         
-        %set up initial tracking parameters form first 3 images
-        
+        %set up initial tracking parameters form first 3 images        
         thisStack = IMChStack{1,1}(I);
         thisInfo = IMInfo{I};
         im_mem = double(imread(IMChName{I}, 1, 'Info', thisInfo));
@@ -141,34 +142,36 @@ for I = 1:numFiles
             f = frames(i);
             
             thisInfo = IMInfo{I};
+            %read in the segmentation channel
             rawMem = double(imread(IMChName{I}, f, 'Info', thisInfo));
             
+            %segment
             mem_mask = segment_AdaptThresh(rawMem,debrisarea,51);
             %mem_mask=bwareaopen(mem_mask,debrisarea); %remove small objects
-            mem_mask = bwperim(mem_mask);
-            mem_mask = imfill(mem_mask,'holes');
-            mem_mask = imerode(mem_mask,strel('disk',2));
-            mem_mask = imopen(mem_mask,strel('disk',1));
+            mem_mask = bwperim(mem_mask); %just take the outline
+            mem_mask = imfill(mem_mask,'holes'); %fill the outline 
+            mem_mask = imerode(mem_mask,strel('disk',2)); %erode a bit
+            mem_mask = imopen(mem_mask,strel('disk',1)); %get rid of small strings etc
             
-            mem_mask  = imclearborder(mem_mask);
-            mem_mask= bwareaopen(mem_mask,debrisarea);
+            mem_mask  = imclearborder(mem_mask); %get rid of cells that touch the border
+            mem_mask= bwareaopen(mem_mask,debrisarea); %get rid of small objects
             %mem_mask = imopen(mem_mask,strel('disk',3));
             
             [mem_label,nummem] =  bwlabel(mem_mask); %number cell objects
             
             stripeIM = double(imread(stripefile, f, 'Info',stripeInfo));
-            stripe_mask = segment_AdaptThresh(stripeIM,5,51);
+            stripe_mask = segment_AdaptThresh(stripeIM,5,51); %segment stripes
             
 
-            stripeAngle = struct2cell(regionprops(stripe_mask,'Orientation'));
+            stripeAngle = struct2cell(regionprops(stripe_mask,'Orientation')); %get the average "angle" of the stripes
             stripeAngle = (cell2mat(stripeAngle));
             stripeAngle(stripeAngle <0) = stripeAngle(stripeAngle <0) + 180;
-            avstripeAngle = median(stripeAngle);
-            stripe_fill = imclose(stripe_mask, strel('line', floor(trackWidth/2),avstripeAngle));
-            stripe_fill = bwareaopen(stripe_fill,40);
-            stripe_label = bwlabel(stripe_fill);
+            avstripeAngle = median(stripeAngle); %average across all segmented stripes
+            stripe_fill = imclose(stripe_mask, strel('line', floor(trackWidth/2),avstripeAngle)); % expand the stripes given that angle
+            stripe_fill = bwareaopen(stripe_fill,40); % get rid of small fragments
+            stripe_label = bwlabel(stripe_fill); 
 
-            mem_info = struct2cell(regionprops(mem_mask,rawMem,'Area','Centroid','MeanIntensity')');
+            mem_info = struct2cell(regionprops(mem_mask,rawMem,'Area','Centroid','MeanIntensity')'); %get info about each segmented cell
             mem_area = squeeze(cell2mat(mem_info(1,1,:)));
             mem_center = squeeze(cell2mat(mem_info(2,1,:)))';
             mem_density = squeeze(cell2mat(mem_info(3,1,:)));
