@@ -11,11 +11,11 @@ clc
 close all
 warning off
 
-%what direction do file separations use
-filesep = '/';
+%what direction do file separations use 
+filesep = '/'; %Anjali I think we don't need to define this, you can just use 'filesep' and it returns system default... right?
 
 %Files
-root = '/Volumes/AB_Data_3/DG_tplastin/20190920_BJ5 CRISPR analysis/WT';
+root = '/Volumes/AB_Data_3/DG_tplastin/20190920_BJ5 CRISPR analysis/WT'; %copy directory info into here
 rawdir=[root,filesep];
 datadir=[root,filesep,'data'];
 
@@ -54,7 +54,7 @@ end
 %%% set up other variables, based on 40x.  change accordingly
 if moviebin == 2
 
-    umPerPx = .325;
+    umPerPx = .325; %set to spatial resolution of camera/obj
     nucr = 20;
     debrisarea = 500;
     boulderarea = 200000;
