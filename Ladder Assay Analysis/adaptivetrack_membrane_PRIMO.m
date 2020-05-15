@@ -1,16 +1,12 @@
 function [tracedata,curdatatracked,tracking,nuc_label]=adaptivetrack_membrane_PRIMO(lastgoodframe,curframe,tracedata,curdata,tracking,nuc_raw,nuc_label,nucr,jitter,winrad,H2BvsNLS)
+
+%adapted for Chung et al (2019) Mol Cell
 %masschangethreshold=0.20; %MCF10A-10xBin1=0.20  BJ5-10xBin2=0.10
-if H2BvsNLS==1
+
     daughtermin=-0.65;
     daughtermax=-0.35;
     masschangethreshold=0.40;
-elseif H2BvsNLS==2
-    daughtermin=-0.70;
-    daughtermax=-0.30;
-    masschangethreshold=0.40;
-end
-%nuc_mask=bwmorph(nuc_label,'remove');
-%nuc_label_mask=nuc_label.*nuc_mask;
+
 absjitx=jitter(1); absjity=jitter(2);
 %%% set up %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %winrad=3*nucr; %prev:4*nucr
@@ -53,18 +49,9 @@ for i=1:numprevextant
     match=neighbors(cidx);
     massdiff=(masscur(match)-massprev(p))/massprev(p);
     if massdiff>masschangethreshold || ongoingmerge(p)
-        %[bordermask,borderflag(match)]=attemptsplit_1(match,nuc_label,bordermask,nucr);
-        %tempx=rxcur(match);
-        %tempy=rycur(match);
-        %denovo_id=denovo_label(tempy,tempx);
-        %if denovo_id==0
-        %    denovo_id=max(denovo_label(nuc_label==match));
-        %end
-        %[bordermask,borderflag(match)]=splitdeflections_1(B{denovo_id},bordermask,nucr);
+
         orderedset=B{match};
         orderedset=[orderedset(end:-1:1,2) orderedset(end:-1:1,1)];
-        %bordermask=splitdeflections_4_bwboundaries(orderedset,bordermask,nucr);
-        %[bordermask,borderflag(match)]=splitdeflections_2(B{match},bordermask,nucr);
     end
 end
 %%% assign new IDs to un-merged cells %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -128,11 +115,10 @@ for i=1:numprevextant
     candidates=neighbors(candidateidx);
     dist=dist(candidateidx);
     massdiff=massdiff(candidateidx); areadiff=areadiff(candidateidx);
-    %splitcheck=ongoingmerge(p) & ~mergeduration(p) & massdiff(1)<-masschangethreshold & massdiff(2)<-masschangethreshold & abs(sum(massdiff)+1)<masschangethreshold;
     splitcheck=ongoingmerge(p) & shortmerge(p) & massdiff(1)<-masschangethreshold & massdiff(2)<-masschangethreshold & abs(sum(massdiff)+1)<masschangethreshold;
     daughtercheck=~ongoingmerge(p) & massdiff>daughtermin & massdiff<daughtermax & dist<winrad & areadiff<0; %H2B: -0.55 to -0.45; NLS: -0.70 to -0.30
     if splitcheck
-        %tracking(p,5)=curframe-1; %finish tracking merge
+       %finish tracking merge
         cell1=tracking(p,2); cell2=tracking(p,3);
         mergedframes=tracking(p,4):(curframe-1);
         premergeframe=find(~isnan(tracedata(cell1,:,1)),1,'last');
@@ -152,8 +138,6 @@ for i=1:numprevextant
             else
                 cell1post=candidates(2); cell2post=candidates(1);
             end
-            %tracedata(cell1,mergedframes,:)=(tracedata(cell1post,curframe,:)-tracedata(cell1,premergeframe,:))*(curframe-mergedframes);
-            %tracedata(cell2,mergedframes,:)=(tracedata(cell2post,curframe,:)-tracedata(cell2,premergeframe,:))*(curframe-mergedframes);
             prevmatch(cell1)=cell1post;
             prevmatch(cell2)=cell2post;
             curmatch(candidates)=curmatch(candidates)+1;
@@ -252,47 +236,3 @@ for i=1:numcur
     
 end
 
-%%% debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%{
-%NOTE: must include extractmask, jitx, and jity in the arguments
-%%%%%% view current cell and its prior neighbors %%%%%%%%%%%%%%%%%%%%%%%%%%
-[height,width]=size(nuc_label);
-dxminprev=max([round(xprev(match)-winrad) 1]); dxmaxprev=min([round(xprev(match)+winrad) width]);
-dyminprev=max([round(yprev(match)-winrad) 1]); dymaxprev=min([round(yprev(match)+winrad) height]);
-dxmincur=round(dxminprev-reljitx); dxmindiff=double((1-dxmincur)*(dxmincur<1)); dxmincur=max([dxmincur 1]);
-dxmaxcur=round(dxmaxprev-reljitx); dxmaxdiff=double((dxmaxcur-width)*(dxmaxcur>width)); dxmaxcur=min([dxmaxcur width]);
-dymincur=round(dyminprev-reljity); dymindiff=double((1-dymincur)*(dymincur<1)); dymincur=max([dymincur 1]);
-dymaxcur=round(dymaxprev-reljity); dymaxdiff=double((dymaxcur-height)*(dymaxcur>height)); dymaxcur=min([dymaxcur height]);
-dbmaskcur=bwmorph(nuc_label,'remove');
-dbmaskcur=dbmaskcur(dymincur:dymaxcur,dxmincur:dxmaxcur);
-dbmaskcur=padarray(dbmaskcur,[dymindiff dxmindiff],'pre');
-dbmaskcur=padarray(dbmaskcur,[dymaxdiff dxmaxdiff],'post');
-dbmaskprev=extractmask(dyminprev:dymaxprev,dxminprev:dxmaxprev);
-dbimage=mat2gray(dbmaskprev);
-dbimage(:,:,2)=dbmaskcur;
-dbimage(:,:,3)=0;
-figure,imshow(dbimage);
-%%%%%% view current cell w/ bridge %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[height,width]=size(nuc_label);
-dxminprev=max([round(xprev(match)-winrad) 1]); dxmaxprev=min([round(xprev(match)+winrad) width]);
-dyminprev=max([round(yprev(match)-winrad) 1]); dymaxprev=min([round(yprev(match)+winrad) height]);
-dxmincur=round(dxminprev-reljitx); dxmindiff=double((1-dxmincur)*(dxmincur<1)); dxmincur=max([dxmincur 1]);
-dxmaxcur=round(dxmaxprev-reljitx); dxmaxdiff=double((dxmaxcur-width)*(dxmaxcur>width)); dxmaxcur=min([dxmaxcur width]);
-dymincur=round(dyminprev-reljity); dymindiff=double((1-dymincur)*(dymincur<1)); dymincur=max([dymincur 1]);
-dymaxcur=round(dymaxprev-reljity); dymaxdiff=double((dymaxcur-height)*(dymaxcur>height)); dymaxcur=min([dymaxcur height]);
-dbmaskcur=bwmorph(nuc_label,'remove');
-dbmaskcur=dbmaskcur(dymincur:dymaxcur,dxmincur:dxmaxcur);
-dbmaskcur=padarray(dbmaskcur,[dymindiff dxmindiff],'pre');
-dbmaskcur=padarray(dbmaskcur,[dymaxdiff dxmaxdiff],'post');
-dbbridgecur=bordermask(dymincur:dymaxcur,dxmincur:dxmaxcur);
-dbbridgecur=padarray(dbbridgecur,[dymindiff dxmindiff],'pre');
-dbbridgecur=padarray(dbbridgecur,[dymaxdiff dxmaxdiff],'post');
-dbmaskprev=extractmask(dyminprev:dymaxprev,dxminprev:dxmaxprev);
-dbimage=dbbridgecur;
-dbimage(:,:,2)=dbmaskcur;
-dbimage(:,:,3)=0;
-figure,imshow(imresize(dbimage,5));
-%%%%%% view previous cell and its future neighbors %%%%%%%%%%%%%%%%%%%%%%%%
-p=3767;
-prevcellandcurrentneighbors(debugpackage,nuc_label,winrad,xprev,yprev,p);
-%}
