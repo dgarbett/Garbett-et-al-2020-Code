@@ -1,16 +1,21 @@
-% Image processing for ladder patterns to track and idenitfy which pattern
-% the cell is on
-%
+% Image processing for ladder patterns to 1) segment cells and laggers indepdendently 2)track cells over time 3)assign cells to individual stripes and 
+% the cell is on at teach time point.  Analysis is performed in 3 phases.
+%1) cell and stripe tracking. (lines 10 - 268):
+        %input - 2 tiff stacks, one for segmentation of cells and the other for segmentation of stripes 
+        %output - 1 memtracedata per capture that corresponds to 3 output .tiff files with tracking info
+%2) area and stripe assignment (lines 269 - 378): 
+        %input - 1 memtracedata per capture that corresponds to 3 output .tiff files with tracking info
+        %output - n # of individual cell analyses that will have area and stripe assignments 
+%3) summary tables (lines 383 - end): 
+        %input -  n # of individual cell analyses that will have area and stripe assignments 
+        %output - summary table that can be further subset to get change in area after 1 hour which is used   
 % Anjali Bisaria 2018
 %
-
-
 %% Working folder
 clear
 clc
 close all
 warning off
-
 %what direction do file separations use 
 filesep = '/'; %Anjali I think we don't need to define this, you can just use 'filesep' and it returns system default... right?
 
