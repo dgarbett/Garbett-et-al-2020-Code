@@ -2,14 +2,14 @@
 %
 % Input
 %   -TIFF sequence from 3I microscope which is named as "Capture #_... 
-%   - 
+%   - background images
 %
 % Output
 %   - movie file with ratio images
 %   - cell array with ratio images stored
 %
 % Background subtraction (subBG.m
-%   - After generating a mask containing FRET-probe expressing cells, the
+%   - After generating a mask containing cells expressing constructs, the
 %   background level is determined from background regions and normalized 
 %   by using the background image to account for uneven illumination 
 %   (flatfield correction)
@@ -33,7 +33,7 @@ GFPchannel=1; %set to Channel number for GFP (in log file) %set to PLS3
 
 %% Working folder
 rawdir=[root,filesep,specfolder];
-bgdir='G:\05.11.16\JustRatio\Cap1Crop2\background';
+bgdir='G:\05.11.16\JustRatio\Cap1Crop2\background'; %where your background images are
 datadir=[rawdir,filesep,'ImageData_',date];
 mkdir(datadir);
 jittersize=50;
@@ -75,12 +75,12 @@ imGFPbg=subBG(GFP_raw,bgmask,GFPbgraw);
 %imYFPbg=subBG(YFP_raw,bgmask,YFPbgraw);
 iRFPbg=subBG(iRFP_raw,bgmask,iRFPbgraw);
 
-%using Arnolds masking method for YFP channel (getCellMask.m) input image and min cell size
+%masking method for sum of channels (getCellMask.m) input image and min cell size
 sum=iRFP_raw+GFP_raw;
 mask=getCellMask((sum),4000);
 edgemask=bwperim(mask);
 
-%my mask method adapted from Min's tutorial
+%Alternative Masking Method, may work better for some images
 % logimiRFP=log(1+iRFP_raw);
 % normlogimiRFP=mat2gray(logimiRFP);
 % autothreshold1=graythresh(normlogimiRFP);
@@ -111,7 +111,7 @@ subplot(2,2,4); imshow(tempRATIO1);
 %% Make movie
 close all
 shot=[specfolder]';
-%range=[0.2 3.0];
+%range=[0.2 3.0]; %for specifying range of colormap manually [min max]
 filenames=getFilenames(rawdir); 
 
 imRatioStack=[];maskFinal={};cellCoors={};
@@ -138,13 +138,13 @@ for frameNum=SF:EF
     %imYFPbg=subBG(YFP_raw,bgmask,YFPbgraw);
     iRFPbg=subBG(iRFP_raw,bgmask,iRFPbgraw);
     
-    %Arnold mask method
+    %mask method
     sum=iRFP_raw+GFP_raw;
     mask=getCellMask((sum),4000);
     edgemask=bwperim(mask);
     
     
-    %my mask method adapted from Min's tutorial
+    %alternative mask method
 %     logimiRFP=log(1+iRFP_raw);
 %     normlogimiRFP=mat2gray(logimiRFP);
 %     autothreshold1=graythresh(normlogimiRFP);
@@ -153,11 +153,11 @@ for frameNum=SF:EF
 %     mask1clean=bwareaopen(automask1,1000);
 %     mask=imfill(mask1clean, 'holes'); % Fill holes in mask
     
-    %[mask cellCoorsTemp]=getCellMask((mCherry_raw),1500);
+    %[mask cellCoorsTemp]=getCellMask((mCherry_raw),1500); %uncomment for coordinate values
     %maskFinal{AdjFrameCount}=mask;
     %cellCoors{AdjFrameCount}=cellCoorsTemp;
 
-    % Detrmine ratio 1
+    % Detrmine ratio 
     GFP_raw2=imGFPbg; %sets to background subtracted CFP
     GFP_raw2(~mask)=nan;
     imGFP=ndnanfilter(GFP_raw2,fspecial('disk',2),'replicate'); %changed disk to 2 to blur less
